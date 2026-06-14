@@ -25,5 +25,30 @@ export const config = {
   },
 } as const;
 
+// AWS Bedrock config for the AI incident assistant. Feature-gated: the server
+// boots fine without these — the /analyze endpoint just returns 502 until they
+// are set. Validated lazily by llmService, never required at startup.
+export interface BedrockConfig {
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
+  modelId: string;
+}
+
+export function getBedrockConfig(): BedrockConfig | null {
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const region = process.env.AWS_REGION;
+  if (!accessKeyId || !secretAccessKey || !region) return null;
+  return {
+    accessKeyId,
+    secretAccessKey,
+    region,
+    modelId: process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-haiku-20240307-v1:0",
+  };
+}
+
+export const isAiEnabled = getBedrockConfig() !== null;
+
 export const REFRESH_COOKIE_NAME = "refreshToken";
 export const REFRESH_COOKIE_PATH = "/api/auth/refresh";
