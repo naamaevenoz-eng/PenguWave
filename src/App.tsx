@@ -1,43 +1,42 @@
-import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import LoginModal from "./components/LoginModal";
 import EventsPage from "./pages/EventsPage";
 import UsersPage from "./pages/UsersPage";
 import NotFound from "./pages/NotFound";
-
-// Skip the login modal during local development.
-const DEBUG_BYPASS_AUTH = false;
+import { useAuth } from "./auth/AuthContext";
 
 function App() {
-  const [showLogin, setShowLogin] = useState(false);
+  const { user, loading } = useAuth();
 
-  // Show login modal on first visit
-  useEffect(() => {
-    if (DEBUG_BYPASS_AUTH) return;
-    const dismissed = sessionStorage.getItem("login-dismissed");
-    if (!dismissed) {
-      setShowLogin(true);
-    }
-  }, []);
+  if (loading) {
+    return (
+      <div className="container">
+        <p style={{ color: "#999", padding: 40 }}>Loading…</p>
+      </div>
+    );
+  }
 
-  const handleCloseLogin = () => {
-    sessionStorage.setItem("login-dismissed", "true");
-    setShowLogin(false);
-  };
+  // Authentication is required — no bypass flags, no dismissible modal.
+  if (!user) {
+    return <LoginModal />;
+  }
 
   return (
     <>
-      <Navbar onLoginClick={() => setShowLogin(true)} />
+      <Navbar />
       <div className="container">
         <Routes>
           <Route path="/" element={<Navigate to="/events" replace />} />
           <Route path="/events" element={<EventsPage />} />
-          <Route path="/users" element={<UsersPage />} />
+          {/* Users is admin-only; non-admins are redirected away. */}
+          <Route
+            path="/users"
+            element={user.role === "admin" ? <UsersPage /> : <Navigate to="/events" replace />}
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
-      {showLogin && <LoginModal onClose={handleCloseLogin} />}
     </>
   );
 }
