@@ -8,6 +8,7 @@ import { loginRateLimiter } from "./middleware/rateLimit.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./routes/auth.js";
 import { eventsRouter } from "./routes/events.js";
+import { usersRouter } from "./routes/users.js";
 
 /**
  * Assembles the Express app. Middleware order matters:
@@ -47,6 +48,7 @@ export function createApp(): Express {
   app.use("/api/auth/login", loginRateLimiter);
   app.use("/api/auth", authRouter);
   app.use("/api/events", eventsRouter);
+  app.use("/api/users", usersRouter);
 
   // 7. Unmatched routes → standard 404.
   app.use(notFoundHandler);
