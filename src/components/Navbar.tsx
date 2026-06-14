@@ -1,11 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
-interface NavbarProps {
-  onLoginClick: () => void;
-}
-
-export default function Navbar({ onLoginClick }: NavbarProps) {
+export default function Navbar() {
   const location = useLocation();
+  const { user, isAdmin, logout } = useAuth();
 
   return (
     <nav className="navbar">
@@ -15,20 +13,22 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
         </Link>
       </div>
       <div className="navbar-links">
-        <Link
-          to="/events"
-          className={location.pathname.startsWith("/events") ? "active" : ""}
-        >
+        <Link to="/events" className={location.pathname.startsWith("/events") ? "active" : ""}>
           Events
         </Link>
-        <Link
-          to="/users"
-          className={location.pathname === "/users" ? "active" : ""}
-        >
-          Users
-        </Link>
-        <button onClick={onLoginClick} className="navbar-login-btn">
-          Login
+        {/* Users link is shown only to admins (route is also guarded). */}
+        {isAdmin && (
+          <Link to="/users" className={location.pathname === "/users" ? "active" : ""}>
+            Users
+          </Link>
+        )}
+        {user && (
+          <span style={{ color: "#666", fontSize: 13 }}>
+            {user.email} ({user.role})
+          </span>
+        )}
+        <button onClick={logout} className="navbar-login-btn">
+          Logout
         </button>
       </div>
     </nav>
