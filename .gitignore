@@ -14,11 +14,13 @@ backend/.env
 backend/.env.*
 !backend/.env.example
 
-# SQLite database files (data is seeded, not tracked)
+# SQLite database files + WAL/SHM sidecars (data is seeded, not tracked)
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
-backend/data/*.db
+backend/data/
 
 # Logs
 *.log
