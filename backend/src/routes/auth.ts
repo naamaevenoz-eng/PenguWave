@@ -4,6 +4,7 @@ import { sendError } from "../lib/http.js";
 import { LoginSchema } from "../schemas/auth.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { verifyCredentials, findAuthUserById } from "../services/userService.js";
+import { recordAudit } from "../services/auditService.js";
 import {
   signAccessToken,
   issueRefreshToken,
@@ -35,15 +36,36 @@ authRouter.post("/login", (req, res) => {
 
   const user = verifyCredentials(parsed.data.email, parsed.data.password);
   if (!user) {
+    recordAudit({
+      action: "auth.login.failure",
+      actorEmail: parsed.data.email,
+      ipAddress: req.ip,
+      correlationId: req.correlationId,
+    });
     return sendError(req, res, 401, "Invalid email or password");
   }
   if (user.status !== "active") {
+    recordAudit({
+      action: "auth.login.failure",
+      actorId: user.id,
+      actorEmail: user.email,
+      ipAddress: req.ip,
+      correlationId: req.correlationId,
+      metadata: { reason: "account_disabled" },
+    });
     return sendError(req, res, 403, "Account is disabled");
   }
 
   const token = signAccessToken(user);
   const refreshToken = issueRefreshToken(user.id);
   res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
+  recordAudit({
+    action: "auth.login.success",
+    actorId: user.id,
+    actorEmail: user.email,
+    ipAddress: req.ip,
+    correlationId: req.correlationId,
+  });
   res.status(200).json({
     token,
     user: { id: user.id, email: user.email, role: user.role },
@@ -61,6 +83,13 @@ authRouter.post("/logout", authenticate, (req, res) => {
     revokeAllRefreshTokensForUser(req.user.id);
   }
   res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+  recordAudit({
+    action: "auth.logout",
+    actorId: req.user?.id,
+    actorEmail: req.user?.email,
+    ipAddress: req.ip,
+    correlationId: req.correlationId,
+  });
   res.status(200).json({ message: "Logged out" });
 });
 
@@ -92,5 +121,12 @@ authRouter.post("/refresh", (req, res) => {
   const newRefresh = issueRefreshToken(user.id);
   const newAccess = signAccessToken(user);
   res.cookie(REFRESH_COOKIE_NAME, newRefresh, refreshCookieOptions);
+  recordAudit({
+    action: "auth.token.refresh",
+    actorId: user.id,
+    actorEmail: user.email,
+    ipAddress: req.ip,
+    correlationId: req.correlationId,
+  });
   res.status(200).json({ token: newAccess });
 });
