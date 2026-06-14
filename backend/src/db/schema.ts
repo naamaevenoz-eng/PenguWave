@@ -57,4 +57,30 @@ CREATE TABLE IF NOT EXISTS token_blocklist (
   expires_at INTEGER NOT NULL,
   created_at INTEGER NOT NULL
 );
+
+-- Append-only audit trail of sensitive actions.
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id             TEXT PRIMARY KEY,
+  actor_id       TEXT,
+  actor_email    TEXT,
+  action         TEXT NOT NULL,
+  target_type    TEXT,
+  target_id      TEXT,
+  ip_address     TEXT,
+  correlation_id TEXT,
+  metadata       TEXT,
+  created_at     INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs (actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs (created_at);
+
+-- Immutability by construction: block any UPDATE or DELETE at the engine level,
+-- so the audit trail is append-only even against a bug or a raw query.
+CREATE TRIGGER IF NOT EXISTS audit_logs_no_update
+  BEFORE UPDATE ON audit_logs
+  BEGIN SELECT RAISE(ABORT, 'audit_logs is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS audit_logs_no_delete
+  BEFORE DELETE ON audit_logs
+  BEGIN SELECT RAISE(ABORT, 'audit_logs is append-only'); END;
 `;
