@@ -5,7 +5,9 @@ const app = createApp();
 
 app.listen(config.port, () => {
   console.log(`PenguWave backend listening on http://localhost:${config.port}`);
-  if (!isAiEnabled) {
-    console.log("AI analysis disabled: AWS credentials not set (POST /api/events/:id/analyze will return 502).");
-  }
+  console.log(
+    isAiEnabled
+      ? "Optional AI incident analysis: ENABLED."
+      : "Optional AI incident analysis: off (this is fine — add AWS_* to backend/.env to enable it; all other features run normally).",
+  );
 });
